@@ -1,4 +1,5 @@
 #include <iostream>
+#include <pcap.h>
 using namespace std;
 
 void foo(int &a){
