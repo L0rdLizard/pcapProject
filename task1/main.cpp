@@ -14,28 +14,33 @@ void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_c
 int main(int argc, char const *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* pcap;
+    cout << argv[1] << endl;
 
-    if (argc < 2) {
-        cerr << "Использование: " << argv[0] << " <интерфейс или файл>" << endl;
+    if (argc < 3) {
+        cerr << "Использование: " << argv[0] << " <режим> <интерфейс или файл>" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
         return 1;
     }
 
-    if (strncmp(argv[1], "eth", 3) == 0 || strncmp(argv[1], "wlan", 4) == 0) {
-        pcap = pcap_open_live(argv[1], BUFSIZ, 1, 1000, errbuf);
+    if (strncmp(argv[1], "1", 1) == 0){
+        pcap = pcap_open_live(argv[2], BUFSIZ, 1, 1000, errbuf);
+        cout << argv[2] << endl;
         if (pcap == NULL) {
             cerr << "Ошибка открытия сетевого интерфейса: " << errbuf << endl;
             return 1;
         }
-        cout << "Захват пакетов с сетевого интерфейса\n";
+        cout << "Захват пакетов с сетевого интерфейса" << argv[2] << endl;
 
-    } else {
-        pcap = pcap_open_offline(argv[1], errbuf);
+    } else if (strncmp(argv[1], "2", 1) == 0){
+        pcap = pcap_open_offline(argv[2], errbuf);
         if (pcap == NULL) {
             cerr << "Ошибка открытия файла: " << errbuf << endl;
             return 1;
         }
-        cout << "Чтение пакетов из pcap файла" << argv[1] << endl;
-        
+        cout << "Чтение пакетов из pcap файла " << argv[2] << endl;
+
+    } else{
+        cerr << "Неверный режим" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
+        return 1;
     }
 
     pcap_loop(pcap, 0, packetHandler, NULL);
