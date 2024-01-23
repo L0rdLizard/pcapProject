@@ -1,13 +1,39 @@
 #include <pcap.h>
 #include <iostream>
 #include <cstring>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
 
 using namespace std;
 
 void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packetData) {
-    cout << "Время получения: " << pkthdr->ts.tv_sec << "." << pkthdr->ts.tv_usec << std::endl;
 
-    cout << "Размер пакета: " << pkthdr->len << " байт" << std::endl;
+    struct iphdr* ipHeader = (struct iphdr*)(packetData + 14); 
+
+    if (ipHeader->protocol == IPPROTO_TCP) {
+        struct tcphdr* tcpHeader = (struct tcphdr*)(packetData + 14 + ipHeader->ihl * 4);
+
+        uint16_t srcPort = ntohs(tcpHeader->source);
+        uint16_t destPort = ntohs(tcpHeader->dest);
+
+        uint32_t srcIP = ntohl(ipHeader->saddr);
+        uint32_t destIP = ntohl(ipHeader->daddr);
+
+        cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+
+    } else if (ipHeader->protocol == IPPROTO_UDP) {
+        struct udphdr* udpHeader = (struct udphdr*)(packetData + 14 + ipHeader->ihl * 4);
+
+        uint16_t srcPort = ntohs(udpHeader->source);
+        uint16_t destPort = ntohs(udpHeader->dest);
+
+        uint32_t srcIP = ntohl(ipHeader->saddr);
+        uint32_t destIP = ntohl(ipHeader->daddr);
+
+        cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+
+    }
 }
 
 
@@ -28,7 +54,7 @@ int main(int argc, char const *argv[]) {
             cerr << "Ошибка открытия сетевого интерфейса: " << errbuf << endl;
             return 1;
         }
-        cout << "Захват пакетов с сетевого интерфейса" << argv[2] << endl;
+        cout << "Захват пакетов с сетевого интерфейса " << argv[2] << endl;
 
     } else if (strncmp(argv[1], "2", 1) == 0){
         pcap = pcap_open_offline(argv[2], errbuf);
