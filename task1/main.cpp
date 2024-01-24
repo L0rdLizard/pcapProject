@@ -25,9 +25,8 @@ public:
 
         if (!csvFile.is_open()) {
             cerr << "Не удалось открыть файл: " << filename << endl;
-            // Добавьте дополнительную обработку ошибок при необходимости
         } else {
-            cout << "файл открыт" << endl;
+            cout << "Файл открыт" << endl;
             csvFile << "Source IP,Source Port,Destination IP,Destination Port,Packet Count,Byte Count\n";
         }
     }
