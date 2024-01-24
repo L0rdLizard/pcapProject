@@ -10,29 +10,32 @@ using namespace std;
 void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packetData) {
 
     struct iphdr* ipHeader = (struct iphdr*)(packetData + 14); 
+    
+    if (ipHeader->version == 4) {
 
-    if (ipHeader->protocol == IPPROTO_TCP) {
-        struct tcphdr* tcpHeader = (struct tcphdr*)(packetData + 14 + ipHeader->ihl * 4);
+        if (ipHeader->protocol == IPPROTO_TCP) {
+            struct tcphdr* tcpHeader = (struct tcphdr*)(packetData + 14 + ipHeader->ihl * 4);
 
-        uint16_t srcPort = ntohs(tcpHeader->source);
-        uint16_t destPort = ntohs(tcpHeader->dest);
+            uint16_t srcPort = ntohs(tcpHeader->source);
+            uint16_t destPort = ntohs(tcpHeader->dest);
 
-        uint32_t srcIP = ntohl(ipHeader->saddr);
-        uint32_t destIP = ntohl(ipHeader->daddr);
+            uint32_t srcIP = ntohl(ipHeader->saddr);
+            uint32_t destIP = ntohl(ipHeader->daddr);
 
-        cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+            cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
 
-    } else if (ipHeader->protocol == IPPROTO_UDP) {
-        struct udphdr* udpHeader = (struct udphdr*)(packetData + 14 + ipHeader->ihl * 4);
+        } else if (ipHeader->protocol == IPPROTO_UDP) {
+            struct udphdr* udpHeader = (struct udphdr*)(packetData + 14 + ipHeader->ihl * 4);
 
-        uint16_t srcPort = ntohs(udpHeader->source);
-        uint16_t destPort = ntohs(udpHeader->dest);
+            uint16_t srcPort = ntohs(udpHeader->source);
+            uint16_t destPort = ntohs(udpHeader->dest);
 
-        uint32_t srcIP = ntohl(ipHeader->saddr);
-        uint32_t destIP = ntohl(ipHeader->daddr);
+            uint32_t srcIP = ntohl(ipHeader->saddr);
+            uint32_t destIP = ntohl(ipHeader->daddr);
 
-        cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+            cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
 
+        }
     }
 }
 
@@ -40,7 +43,6 @@ void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_c
 int main(int argc, char const *argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* pcap;
-    cout << argv[1] << endl;
 
     if (argc < 3) {
         cerr << "Использование: " << argv[0] << " <режим> <интерфейс или файл>" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
