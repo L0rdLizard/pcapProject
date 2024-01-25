@@ -6,6 +6,7 @@
 #include <netinet/udp.h>
 #include <fstream>
 #include <unordered_map>
+#include <csignal>
 
 using namespace std;
 
@@ -14,11 +15,22 @@ private:
     unordered_map<string, pair<uint64_t, uint64_t>> streamData; // IP1:Port1-IP2:Port2 -> (packetCount, byteCount)
     ofstream csvFile;
 
+    static pcap_t *pcap;
+
+    static volatile sig_atomic_t g_running;
+
+    static void handleSignal(int signum) {
+        if (signum == SIGINT) {
+            g_running = 0;
+            pcap_breakloop(pcap);
+        }
+    }
+
 public:
+
     PacketClassifier(const char* filename) {
-        // cout << filename << endl;
-        // csvFile.open(filename);
-        // csvFile << "Source IP,Source Port,Destination IP,Destination Port,Packet Count,Byte Count\n";
+        pcap = nullptr;
+        g_running = 1;
 
         cout << filename << endl;
         csvFile.open(filename);
@@ -61,7 +73,7 @@ public:
         streamData[streamKey].first++;
         streamData[streamKey].second += pkthdr->len;
 
-        // cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+        cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
     }
 
     void processUDP(const struct pcap_pkthdr* pkthdr, const u_char* packetData) {
@@ -78,13 +90,13 @@ public:
         streamData[streamKey].first++;
         streamData[streamKey].second += pkthdr->len;
 
-        // cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+        cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
     }
 
     void processPackets(const char* mode, const char* interfaceOrFile) {
         char errbuf[PCAP_ERRBUF_SIZE];
-        pcap_t* pcap;
-
+        // pcap_t* pcap;
+        
         if (strncmp(mode, "1", 1) == 0) {
             // TODO live mode is broken
             pcap = pcap_open_live(interfaceOrFile, BUFSIZ, 1, 1000, errbuf);
@@ -107,7 +119,13 @@ public:
             return;
         }
 
-        pcap_loop(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
+        signal(SIGINT, PacketClassifier::handleSignal);
+
+        while (g_running) {
+            pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
+        }
+
+        // pcap_loop(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
 
         pcap_close(pcap);
         writeCSV();
@@ -138,9 +156,11 @@ public:
         }
         csvFile.flush();
     }
-
-    
 };
+
+pcap_t* PacketClassifier::pcap;
+volatile sig_atomic_t PacketClassifier::g_running;  
+
 
 int main(int argc, char const* argv[]) {
     if (argc < 3) {

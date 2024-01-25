@@ -10,3 +10,4 @@ tempCodeRunnerFile.*
 build/
 
 *.pcap
+*.csv
