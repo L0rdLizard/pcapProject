@@ -83,12 +83,8 @@ void PacketClassifier::processUDP(const struct pcap_pkthdr* pkthdr, const u_char
 
 void PacketClassifier::processPackets(const char* mode, const char* interfaceOrFile) {
     char errbuf[PCAP_ERRBUF_SIZE];
-    // pcap_t* pcap;
-
-    // signal(SIGINT, PacketClassifier::handleSignal);
     
     if (strncmp(mode, "1", 1) == 0) {
-        // TODO live mode is broken
         pcap = pcap_open_live(interfaceOrFile, BUFSIZ, 1, 1000, errbuf);
         if (pcap == NULL) {
             cerr << "Ошибка открытия сетевого интерфейса: " << errbuf << endl;
