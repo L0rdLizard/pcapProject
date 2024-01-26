@@ -7,6 +7,8 @@
 #include <fstream>
 #include <unordered_map>
 #include <csignal>
+#include <functional>
+#include <atomic>
 
 using namespace std;
 
@@ -15,18 +17,12 @@ private:
     unordered_map<string, pair<uint64_t, uint64_t>> streamData; // IP1:Port1-IP2:Port2 -> (packetCount, byteCount)
     ofstream csvFile;
 
-    static pcap_t *pcap;
+    static PacketClassifier* instance;
 
-    static volatile sig_atomic_t g_running;
-
-    static void handleSignal(int signum) {
-        if (signum == SIGINT) {
-            g_running = 0;
-            pcap_breakloop(pcap);
-        }
-    }
-
-public:
+    // static pcap_t *pcap;
+    // static volatile sig_atomic_t g_running;
+    pcap_t *pcap;
+    volatile sig_atomic_t g_running;
 
     PacketClassifier(const char* filename) {
         pcap = nullptr;
@@ -41,6 +37,35 @@ public:
             cout << "Файл открыт" << endl;
             csvFile << "Source IP,Source Port,Destination IP,Destination Port,Packet Count,Byte Count\n";
         }
+
+        signal(SIGINT, [](int signum) {
+            if (instance) {
+                instance->g_running = 0;
+                pcap_breakloop(instance->pcap);
+                // writeCSV();
+            }
+        });
+        
+    }
+
+    // static void handleSignal(int signum) {
+    //     if (signum == SIGINT) {
+    //         g_running = 0;
+    //         pcap_breakloop(pcap);
+    //     }
+    // }
+
+public:
+
+    // static PacketClassifier* getInstance(const char* filename) {
+    //     return new PacketClassifier(filename);
+    // }
+
+    static PacketClassifier* getInstance(const char* filename) {
+        if (!instance) {
+            instance = new PacketClassifier(filename);
+        }
+        return instance;
     }
 
     ~PacketClassifier() {
@@ -96,6 +121,8 @@ public:
     void processPackets(const char* mode, const char* interfaceOrFile) {
         char errbuf[PCAP_ERRBUF_SIZE];
         // pcap_t* pcap;
+
+        // signal(SIGINT, PacketClassifier::handleSignal);
         
         if (strncmp(mode, "1", 1) == 0) {
             // TODO live mode is broken
@@ -106,6 +133,16 @@ public:
             }
             cout << "Захват пакетов с сетевого интерфейса " << interfaceOrFile << endl;
 
+            while (g_running) {
+                pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
+            }
+            // while (g_running) {
+            //     if (pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this)) == -1) {
+            //         cerr << "Ошибка при вызове pcap_dispatch: " << pcap_geterr(pcap) << endl;
+            //         break;
+            //     }
+            // }
+
         } else if (strncmp(mode, "2", 1) == 0) {
             pcap = pcap_open_offline(interfaceOrFile, errbuf);
             if (pcap == NULL) {
@@ -114,16 +151,19 @@ public:
             }
             cout << "Чтение пакетов из pcap файла " << interfaceOrFile << endl;
 
+            pcap_loop(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
+
         } else {
             cerr << "Неверный режим" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
             return;
         }
 
-        signal(SIGINT, PacketClassifier::handleSignal);
+        
+        cout << "end";
 
-        while (g_running) {
-            pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
-        }
+        // while (g_running) {
+        //     pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
+        // }
 
         // pcap_loop(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
 
@@ -158,8 +198,9 @@ public:
     }
 };
 
-pcap_t* PacketClassifier::pcap;
-volatile sig_atomic_t PacketClassifier::g_running;  
+// pcap_t* PacketClassifier::pcap;
+// volatile sig_atomic_t PacketClassifier::g_running;  
+PacketClassifier* PacketClassifier::instance = nullptr;
 
 
 int main(int argc, char const* argv[]) {
@@ -168,8 +209,12 @@ int main(int argc, char const* argv[]) {
         return 1;
     }
 
-    PacketClassifier classifier("output.csv");
-    classifier.processPackets(argv[1], argv[2]);
+    // PacketClassifier classifier("output.csv");
+    // classifier.processPackets(argv[1], argv[2]);
+
+    PacketClassifier* packetClassifierInstance = PacketClassifier::getInstance("output.csv");
+
+    packetClassifierInstance->processPackets(argv[1], argv[2]);
 
     return 0;
 }
