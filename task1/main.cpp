@@ -4,7 +4,7 @@ using namespace std;
 
 
 int main(int argc, char const* argv[]) {
-    if (argc < 3) {
+    if (argc != 3) {
         cerr << "Использование: " << argv[0] << " <режим> <интерфейс или файл>" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
         return 1;
     }
