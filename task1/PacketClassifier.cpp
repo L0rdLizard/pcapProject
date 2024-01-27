@@ -6,13 +6,12 @@ PacketClassifier::PacketClassifier(const char* filename) {
     pcap = nullptr;
     g_running = 1;
 
-    cout << filename << endl;
+    cout << "output файл: " << filename << endl;
     csvFile.open(filename);
 
     if (!csvFile.is_open()) {
         cerr << "Не удалось открыть файл: " << filename << endl;
     } else {
-        cout << "Файл открыт" << endl;
         csvFile << "Source IP,Source Port,Destination IP,Destination Port,Packet Count,Byte Count\n";
     }
 
