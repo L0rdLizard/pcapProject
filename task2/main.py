@@ -1,4 +1,5 @@
 import csv
+import sys
 
 def read_csv(file_path):
     data = []
@@ -13,7 +14,7 @@ def process_data(input_data):
     ip_data = {}
 
     for row in input_data:
-        source_ip, source_port, dest_ip, dest_port, received_packets, received_bytes = row[:6]
+        source_ip, dest_ip, source_port, dest_port, received_packets, received_bytes = row[:6]
 
 
         if source_ip not in ip_data:
@@ -40,8 +41,13 @@ def write_csv(output_data, output_file):
             csv_writer.writerow([ip, values['received_packets'], values['received_bytes'], values['sent_packets'], values['sent_bytes']])
 
 if __name__ == "__main__":
-    input_file_path = 'input.csv'
     output_file_path = 'output.csv'
+
+    if len(sys.argv) != 2:
+        print("Usage: python script.py input_file")
+        sys.exit(1)
+    
+    input_file_path = sys.argv[1]
 
     input_data = read_csv(input_file_path)
     processed_data = process_data(input_data)
