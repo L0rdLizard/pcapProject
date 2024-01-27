@@ -16,12 +16,7 @@ PacketClassifier::PacketClassifier(const char* filename) {
         csvFile << "Source IP,Source Port,Destination IP,Destination Port,Packet Count,Byte Count\n";
     }
 
-    signal(SIGINT, [](int signum) {
-        if (instance) {
-            instance->g_running = 0;
-            pcap_breakloop(instance->pcap);
-        }
-    });
+    
 }
 
 PacketClassifier* PacketClassifier::getInstance(const char* filename) {
@@ -61,7 +56,8 @@ void PacketClassifier::processTCP(const struct pcap_pkthdr* pkthdr, const u_char
     streamData[streamKey].first++;
     streamData[streamKey].second += pkthdr->len;
 
-    cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+    cout << "TCP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << 
+        ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
 }
 
 void PacketClassifier::processUDP(const struct pcap_pkthdr* pkthdr, const u_char* packetData) {
@@ -78,7 +74,8 @@ void PacketClassifier::processUDP(const struct pcap_pkthdr* pkthdr, const u_char
     streamData[streamKey].first++;
     streamData[streamKey].second += pkthdr->len;
 
-    cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
+    cout << "UDP Packet - Source IP: " << srcIP << ", Source Port: " << srcPort << 
+        ", Destination IP: " << destIP << ", Destination Port: " << destPort << endl;
 }
 
 void PacketClassifier::processPackets(const char* mode, const char* interfaceOrFile) {
@@ -91,6 +88,13 @@ void PacketClassifier::processPackets(const char* mode, const char* interfaceOrF
             return;
         }
         cout << "Захват пакетов с сетевого интерфейса " << interfaceOrFile << endl;
+
+        signal(SIGINT, [](int signum) {
+            if (instance) {
+                instance->g_running = 0;
+                pcap_breakloop(instance->pcap);
+            }
+        });
 
         while (g_running) {
             pcap_dispatch(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
@@ -107,7 +111,8 @@ void PacketClassifier::processPackets(const char* mode, const char* interfaceOrF
         pcap_loop(pcap, 0, packetHandlerWrapper, reinterpret_cast<u_char*>(this));
 
     } else {
-        cerr << "Неверный режим" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" << "2 - режим чтение пакетов из pcap файла\n";
+        cerr << "Неверный режим" << endl << "1 - режим захвата пакетов с сетевого интерфейса\n" <<
+            "2 - режим чтение пакетов из pcap файла\n";
         return;
     }
 
@@ -121,6 +126,7 @@ void PacketClassifier::packetHandlerWrapper(u_char* userData, const struct pcap_
 }
 
 void PacketClassifier::writeCSV() {
+    cout << endl;
     for (const auto& entry : streamData) {
         size_t pos = entry.first.find("-");
 
@@ -134,9 +140,11 @@ void PacketClassifier::writeCSV() {
         string destIP = dest.substr(0, delimiterPos2);
         string destPort = dest.substr(delimiterPos2 + 1);
 
-        cout << srcIP << "," << destIP << "," << srcPort << "," << destPort << "," << entry.second.first << "," << entry.second.second << "\n";
+        cout << srcIP << "," << destIP << "," << srcPort << "," << destPort << ","
+            << entry.second.first << "," << entry.second.second << "\n";
 
-        csvFile << srcIP << "," << destIP << "," << srcPort << "," << destPort << "," << entry.second.first << "," << entry.second.second << "\n";
+        csvFile << srcIP << "," << destIP << "," << srcPort << "," << destPort << "," 
+            << entry.second.first << "," << entry.second.second << "\n";
     }
     csvFile.flush();
 }
